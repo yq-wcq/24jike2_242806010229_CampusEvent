@@ -1,0 +1,844 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CampusEvent 校园活动报名系统</title>
+<style>
+  :root {
+    --primary: #4f46e5;
+    --primary-dark: #4338ca;
+    --bg: #f5f7fb;
+    --card: #ffffff;
+    --text: #1f2937;
+    --muted: #6b7280;
+    --border: #e5e7eb;
+    --green: #059669;
+    --red: #dc2626;
+    --amber: #d97706;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+  }
+  header {
+    background: #fff;
+    border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+  .header-inner {
+    max-width: 1120px;
+    margin: 0 auto;
+    padding: 14px 24px;
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    flex-wrap: wrap;
+  }
+  .brand {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--primary);
+    white-space: nowrap;
+  }
+  .brand small {
+    display: block;
+    font-size: 12px;
+    font-weight: 400;
+    color: var(--muted);
+  }
+  nav { display: flex; gap: 8px; }
+  nav button {
+    border: 1px solid var(--border);
+    background: #fff;
+    color: var(--muted);
+    padding: 8px 18px;
+    border-radius: 8px;
+    font-size: 14px;
+    cursor: pointer;
+  }
+  nav button.active {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: #fff;
+    font-weight: 600;
+  }
+  .header-right {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 14px;
+  }
+  .header-right a { color: var(--primary); text-decoration: none; }
+  .header-right select {
+    padding: 7px 10px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 14px;
+    background: #fff;
+  }
+  main {
+    max-width: 1120px;
+    margin: 0 auto;
+    padding: 28px 24px 64px;
+  }
+  .card {
+    background: var(--card);
+    border-radius: 14px;
+    padding: 22px 24px;
+    box-shadow: 0 1px 3px rgba(16, 24, 40, .06);
+    margin-bottom: 22px;
+  }
+  .card h2 {
+    margin: 0 0 4px;
+    font-size: 17px;
+  }
+  .card .hint {
+    margin: 0 0 18px;
+    color: var(--muted);
+    font-size: 13px;
+  }
+  .toolbar {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+  }
+  input, select, textarea {
+    font-family: inherit;
+    font-size: 14px;
+    padding: 9px 12px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: #fff;
+    color: var(--text);
+  }
+  input:focus, select:focus { outline: 2px solid #c7d2fe; border-color: var(--primary); }
+  button.btn {
+    font-family: inherit;
+    font-size: 14px;
+    padding: 9px 18px;
+    border-radius: 8px;
+    border: 1px solid var(--primary);
+    background: var(--primary);
+    color: #fff;
+    cursor: pointer;
+    font-weight: 600;
+  }
+  button.btn:hover { background: var(--primary-dark); }
+  button.btn.ghost {
+    background: #fff;
+    color: var(--primary);
+  }
+  button.btn.ghost:hover { background: #eef2ff; }
+  button.btn.danger {
+    background: #fff;
+    border-color: #fecaca;
+    color: var(--red);
+  }
+  button.btn.danger:hover { background: #fef2f2; }
+  button.btn.small { padding: 6px 12px; font-size: 13px; }
+  button.btn:disabled { opacity: .5; cursor: not-allowed; }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 16px;
+  }
+  .activity {
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    background: #fff;
+  }
+  .activity h3 { margin: 0; font-size: 16px; }
+  .meta { color: var(--muted); font-size: 13px; }
+  .meta span { display: block; }
+  .tags { display: flex; gap: 8px; flex-wrap: wrap; }
+  .tag {
+    font-size: 12px;
+    padding: 3px 10px;
+    border-radius: 999px;
+    background: #eef2ff;
+    color: var(--primary-dark);
+  }
+  .tag.gray { background: #f3f4f6; color: var(--muted); }
+  .tag.full { background: #fef2f2; color: var(--red); }
+  .activity .actions { margin-top: auto; display: flex; gap: 8px; }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+  }
+  th, td {
+    text-align: left;
+    padding: 11px 10px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: middle;
+  }
+  th { color: var(--muted); font-weight: 600; font-size: 13px; }
+  .badge {
+    font-size: 12px;
+    padding: 3px 10px;
+    border-radius: 999px;
+    display: inline-block;
+  }
+  .badge.PENDING { background: #fffbeb; color: var(--amber); }
+  .badge.APPROVED { background: #ecfdf5; color: var(--green); }
+  .badge.REJECTED { background: #fef2f2; color: var(--red); }
+  .badge.CANCELLED { background: #f3f4f6; color: var(--muted); }
+  .empty {
+    color: var(--muted);
+    font-size: 14px;
+    padding: 18px 4px;
+  }
+  .msg-item {
+    border-bottom: 1px solid var(--border);
+    padding: 12px 2px;
+    font-size: 14px;
+  }
+  .msg-item:last-child { border-bottom: none; }
+  .msg-item time {
+    display: block;
+    color: var(--muted);
+    font-size: 12px;
+    margin-top: 4px;
+  }
+  .form-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 14px;
+  }
+  .field { display: flex; flex-direction: column; gap: 6px; }
+  .field label { font-size: 13px; color: var(--muted); font-weight: 600; }
+  .form-actions { margin-top: 16px; display: flex; gap: 10px; }
+  dialog {
+    border: none;
+    border-radius: 14px;
+    padding: 0;
+    width: min(520px, calc(100vw - 40px));
+    box-shadow: 0 20px 50px rgba(16, 24, 40, .22);
+  }
+  dialog::backdrop { background: rgba(15, 23, 42, .45); }
+  .dialog-inner { padding: 24px; }
+  .dialog-inner h3 { margin: 0 0 18px; font-size: 17px; }
+  #toast {
+    position: fixed;
+    top: 18px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #111827;
+    color: #fff;
+    padding: 11px 20px;
+    border-radius: 10px;
+    font-size: 14px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .2s;
+    z-index: 100;
+    max-width: calc(100vw - 48px);
+  }
+  #toast.show { opacity: 1; }
+  #toast.error { background: var(--red); }
+  #toast.ok { background: var(--green); }
+  .stat-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .stat-row:last-child { border-bottom: none; }
+  .stat-row b { font-size: 18px; }
+  footer {
+    text-align: center;
+    color: var(--muted);
+    font-size: 13px;
+    padding: 24px;
+  }
+  footer a { color: var(--primary); text-decoration: none; }
+  @media (max-width: 640px) {
+    .header-inner { gap: 12px; }
+    .header-right { margin-left: 0; width: 100%; }
+    main { padding: 18px 14px 48px; }
+    .card { padding: 18px 16px; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="header-inner">
+    <div class="brand">CampusEvent<small>校园活动报名系统</small></div>
+    <nav>
+      <button id="tab-student" class="active" onclick="switchTab('student')">学生端</button>
+      <button id="tab-admin" onclick="switchTab('admin')">管理员端</button>
+    </nav>
+    <div class="header-right">
+      <span>当前学生</span>
+      <select id="student-select" onchange="changeStudent()">
+        <option value="S001">S001</option>
+        <option value="S002">S002</option>
+        <option value="S003">S003</option>
+      </select>
+      <a href="/docs" target="_blank">接口文档</a>
+    </div>
+  </div>
+</header>
+
+<main>
+  <!-- ================= 学生端 ================= -->
+  <section id="student-view">
+    <div class="card">
+      <h2>活动列表</h2>
+      <p class="hint">浏览活动并报名。直接报名立即通过；审核报名需等待管理员审批。</p>
+      <div class="toolbar">
+        <input id="search-input" placeholder="按活动名称筛选" style="flex:1;min-width:200px"
+               onkeydown="if(event.key==='Enter')loadActivities()">
+        <button class="btn" onclick="loadActivities()">查询</button>
+        <button class="btn ghost" onclick="resetSearch()">重置</button>
+      </div>
+      <div id="activity-list" class="grid"></div>
+      <div id="activity-empty" class="empty" hidden>暂无活动。请到管理员端创建一个。</div>
+    </div>
+
+    <div class="card">
+      <h2>我的报名</h2>
+      <p class="hint">待审核和已通过的报名可以取消；已拒绝、已取消的记录不可再操作。</p>
+      <div id="my-registrations"></div>
+    </div>
+
+    <div class="card">
+      <h2>我的消息</h2>
+      <p class="hint">报名提交与审核结果会写入这里。</p>
+      <div id="my-messages"></div>
+    </div>
+  </section>
+
+  <!-- ================= 管理员端 ================= -->
+  <section id="admin-view" hidden>
+    <div class="card">
+      <h2>创建活动</h2>
+      <p class="hint">设置名称、类型、开始时间、地点、人数上限和报名方式。</p>
+      <form id="create-form" onsubmit="createActivity(event)">
+        <div class="form-grid">
+          <div class="field">
+            <label>活动名称</label>
+            <input name="title" required maxlength="100" placeholder="如：校园歌手大赛">
+          </div>
+          <div class="field">
+            <label>活动类型</label>
+            <input name="category" maxlength="50" placeholder="如：文艺、讲座、体育">
+          </div>
+          <div class="field">
+            <label>开始时间</label>
+            <input type="datetime-local" name="start_at" required>
+          </div>
+          <div class="field">
+            <label>地点</label>
+            <input name="location" required maxlength="100" placeholder="如：大学生活动中心">
+          </div>
+          <div class="field">
+            <label>人数上限</label>
+            <input type="number" name="capacity" min="1" value="50" required>
+          </div>
+          <div class="field">
+            <label>报名方式</label>
+            <select name="policy_type">
+              <option value="DIRECT">直接报名（自动通过）</option>
+              <option value="APPROVAL">审核报名（需管理员批准）</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-actions">
+          <button class="btn" type="submit">创建活动</button>
+        </div>
+      </form>
+    </div>
+
+    <div class="card">
+      <h2>活动管理</h2>
+      <p class="hint">编辑人数与信息；删除时若已存在任何报名记录会被拒绝。</p>
+      <div id="admin-activity-table"></div>
+    </div>
+
+    <div class="card">
+      <h2>待审核审批</h2>
+      <p class="hint">选择活动后加载待审核报名；批准时若名额已满会失败。</p>
+      <div class="toolbar">
+        <select id="pending-activity-select" style="flex:1;min-width:220px"></select>
+        <button class="btn" onclick="loadPending()">加载待审核</button>
+      </div>
+      <div id="pending-list"></div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  CampusEvent · 软件工程实验二 ·
+  <a href="/health" target="_blank">健康检查</a> ·
+  <a href="/docs" target="_blank">Swagger 接口文档</a>
+</footer>
+
+<div id="toast"></div>
+
+<!-- 编辑活动 -->
+<dialog id="edit-dialog">
+  <form class="dialog-inner" id="edit-form" onsubmit="submitEdit(event)">
+    <h3>编辑活动</h3>
+    <input type="hidden" name="activity_id">
+    <div class="form-grid">
+      <div class="field">
+        <label>活动名称</label>
+        <input name="title" required maxlength="100">
+      </div>
+      <div class="field">
+        <label>活动类型</label>
+        <input name="category" maxlength="50">
+      </div>
+      <div class="field">
+        <label>开始时间</label>
+        <input type="datetime-local" name="start_at" required>
+      </div>
+      <div class="field">
+        <label>地点</label>
+        <input name="location" required maxlength="100">
+      </div>
+      <div class="field">
+        <label>人数上限</label>
+        <input type="number" name="capacity" min="1" required>
+      </div>
+      <div class="field">
+        <label>报名方式</label>
+        <select name="policy_type">
+          <option value="DIRECT">直接报名</option>
+          <option value="APPROVAL">审核报名</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-actions">
+      <button class="btn" type="submit">保存</button>
+      <button class="btn ghost" type="button" onclick="document.getElementById('edit-dialog').close()">取消</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- 统计 -->
+<dialog id="stats-dialog">
+  <div class="dialog-inner">
+    <h3 id="stats-title">活动统计</h3>
+    <div id="stats-body"></div>
+    <div class="form-actions">
+      <button class="btn ghost" type="button" onclick="document.getElementById('stats-dialog').close()">关闭</button>
+    </div>
+  </div>
+</dialog>
+
+<script>
+const STATUS_TEXT = {
+  PENDING: '待审核', APPROVED: '已通过', REJECTED: '已拒绝', CANCELLED: '已取消'
+};
+const POLICY_TEXT = { DIRECT: '直接报名', APPROVAL: '审核报名' };
+
+const state = {
+  studentId: localStorage.getItem('campus_student') || 'S001',
+  activities: [],
+  adminActivities: []
+};
+
+/* ---------------- 基础工具 ---------------- */
+function esc(value) {
+  return String(value == null ? '' : value)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+function toast(message, type) {
+  const el = document.getElementById('toast');
+  el.textContent = message;
+  el.className = 'show ' + (type || '');
+  clearTimeout(toast._timer);
+  toast._timer = setTimeout(() => { el.className = ''; }, 3200);
+}
+
+async function api(path, options) {
+  const opts = Object.assign({ headers: { 'Content-Type': 'application/json' } }, options || {});
+  const res = await fetch(path, opts);
+  if (res.status === 204) return null;
+  let data = null;
+  try { data = await res.json(); } catch (e) { data = null; }
+  if (!res.ok) {
+    const msg = (data && (data.message || data.detail)) || ('请求失败（HTTP ' + res.status + '）');
+    throw new Error(typeof msg === 'string' ? msg : JSON.stringify(msg));
+  }
+  return data;
+}
+
+function fmt(dateStr) {
+  if (!dateStr) return '-';
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return dateStr;
+  const p = n => String(n).padStart(2, '0');
+  return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()) +
+         ' ' + p(d.getHours()) + ':' + p(d.getMinutes());
+}
+
+function toLocalInput(dateStr) {
+  if (!dateStr) return '';
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return '';
+  const p = n => String(n).padStart(2, '0');
+  return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()) +
+         'T' + p(d.getHours()) + ':' + p(d.getMinutes());
+}
+
+/* ---------------- 视图切换 ---------------- */
+function switchTab(tab) {
+  document.getElementById('student-view').hidden = tab !== 'student';
+  document.getElementById('admin-view').hidden = tab !== 'admin';
+  document.getElementById('tab-student').classList.toggle('active', tab === 'student');
+  document.getElementById('tab-admin').classList.toggle('active', tab === 'admin');
+  if (tab === 'admin') loadAdminActivities();
+}
+
+function changeStudent() {
+  state.studentId = document.getElementById('student-select').value;
+  localStorage.setItem('campus_student', state.studentId);
+  loadActivities();
+  loadMyRegistrations();
+  loadMessages();
+}
+
+/* ---------------- 学生端 ---------------- */
+async function loadActivities() {
+  const keyword = document.getElementById('search-input').value.trim();
+  const path = keyword ? '/api/activities?keyword=' + encodeURIComponent(keyword) : '/api/activities';
+  try {
+    const list = await api(path);
+    state.activities = list;
+    renderActivities(list);
+  } catch (err) {
+    toast(err.message, 'error');
+  }
+}
+
+function resetSearch() {
+  document.getElementById('search-input').value = '';
+  loadActivities();
+}
+
+function renderActivities(list) {
+  const box = document.getElementById('activity-list');
+  const empty = document.getElementById('activity-empty');
+  empty.hidden = list.length > 0;
+  box.innerHTML = list.map(a => {
+    const remaining = a.remaining_seats == null ? null : a.remaining_seats;
+    const full = remaining !== null && remaining <= 0;
+    const remainText = remaining === null ? '剩余名额：—' : '剩余名额：' + remaining + ' / ' + a.capacity;
+    return `
+      <article class="activity">
+        <h3>${esc(a.title)}</h3>
+        <div class="tags">
+          <span class="tag gray">${esc(a.category || '未分类')}</span>
+          <span class="tag">${POLICY_TEXT[a.policy_type] || esc(a.policy_type)}</span>
+          ${full ? '<span class="tag full">已满</span>' : ''}
+        </div>
+        <div class="meta">
+          <span>时间：${esc(fmt(a.start_at))}</span>
+          <span>地点：${esc(a.location)}</span>
+          <span>${esc(remainText)}</span>
+        </div>
+        <div class="actions">
+          <button class="btn small" ${full ? 'disabled' : ''}
+                  onclick="registerActivity('${esc(a.activity_id)}')">
+            ${full ? '名额已满' : '我要报名'}
+          </button>
+        </div>
+      </article>`;
+  }).join('');
+}
+
+async function registerActivity(activityId) {
+  try {
+    const reg = await api('/api/activities/' + activityId + '/registrations', {
+      method: 'POST',
+      body: JSON.stringify({ student_id: state.studentId })
+    });
+    toast('报名成功，状态：' + (STATUS_TEXT[reg.status] || reg.status), 'ok');
+    await loadActivities();
+    await loadMyRegistrations();
+    await loadMessages();
+  } catch (err) {
+    toast(err.message, 'error');
+  }
+}
+
+async function loadMyRegistrations() {
+  const box = document.getElementById('my-registrations');
+  try {
+    const list = await api('/api/students/' + encodeURIComponent(state.studentId) + '/registrations');
+    if (!list.length) {
+      box.innerHTML = '<div class="empty">还没有报名记录。</div>';
+      return;
+    }
+    box.innerHTML = `
+      <table>
+        <thead><tr><th>活动</th><th>状态</th><th>报名时间</th><th>操作</th></tr></thead>
+        <tbody>
+        ${list.map(r => {
+          const activity = state.activities.find(a => a.activity_id === r.activity_id);
+          const title = activity ? activity.title : r.activity_id;
+          const canCancel = r.status === 'PENDING' || r.status === 'APPROVED';
+          return `<tr>
+            <td>${esc(title)}</td>
+            <td><span class="badge ${esc(r.status)}">${STATUS_TEXT[r.status] || esc(r.status)}</span></td>
+            <td>${esc(fmt(r.created_at))}</td>
+            <td>${canCancel
+              ? `<button class="btn small danger" onclick="cancelRegistration('${esc(r.registration_id)}')">取消报名</button>`
+              : '—'}</td>
+          </tr>`;
+        }).join('')}
+        </tbody>
+      </table>`;
+  } catch (err) {
+    box.innerHTML = '<div class="empty">加载失败：' + esc(err.message) + '</div>';
+  }
+}
+
+async function cancelRegistration(registrationId) {
+  if (!confirm('确认取消这条报名吗？')) return;
+  try {
+    await api('/api/students/' + encodeURIComponent(state.studentId) +
+              '/registrations/' + registrationId, { method: 'DELETE' });
+    toast('已取消报名', 'ok');
+    await loadActivities();
+    await loadMyRegistrations();
+  } catch (err) {
+    toast(err.message, 'error');
+  }
+}
+
+async function loadMessages() {
+  const box = document.getElementById('my-messages');
+  try {
+    const list = await api('/api/students/' + encodeURIComponent(state.studentId) + '/messages');
+    if (!list.length) {
+      box.innerHTML = '<div class="empty">暂无消息。</div>';
+      return;
+    }
+    box.innerHTML = list.map(m => `
+      <div class="msg-item">
+        ${esc(m.content)}
+        <time>${esc(fmt(m.created_at))}</time>
+      </div>`).join('');
+  } catch (err) {
+    box.innerHTML = '<div class="empty">加载失败：' + esc(err.message) + '</div>';
+  }
+}
+
+/* ---------------- 管理员端 ---------------- */
+async function createActivity(event) {
+  event.preventDefault();
+  const form = event.target;
+  const data = {
+    title: form.title.value.trim(),
+    category: form.category.value.trim(),
+    start_at: form.start_at.value,
+    location: form.location.value.trim(),
+    capacity: Number(form.capacity.value),
+    policy_type: form.policy_type.value
+  };
+  try {
+    await api('/api/admin/activities', { method: 'POST', body: JSON.stringify(data) });
+    toast('活动创建成功', 'ok');
+    form.reset();
+    form.capacity.value = 50;
+    await loadAdminActivities();
+    await loadActivities();
+  } catch (err) {
+    toast(err.message, 'error');
+  }
+}
+
+async function loadAdminActivities() {
+  try {
+    state.adminActivities = await api('/api/activities');
+    renderAdminTable();
+    renderPendingSelect();
+  } catch (err) {
+    toast(err.message, 'error');
+  }
+}
+
+function renderAdminTable() {
+  const box = document.getElementById('admin-activity-table');
+  const list = state.adminActivities;
+  if (!list.length) {
+    box.innerHTML = '<div class="empty">暂无活动。</div>';
+    return;
+  }
+  box.innerHTML = `
+    <table>
+      <thead>
+        <tr><th>名称</th><th>类型</th><th>开始时间</th><th>地点</th><th>人数上限</th><th>报名方式</th><th>操作</th></tr>
+      </thead>
+      <tbody>
+      ${list.map(a => `
+        <tr>
+          <td>${esc(a.title)}</td>
+          <td>${esc(a.category || '-')}</td>
+          <td>${esc(fmt(a.start_at))}</td>
+          <td>${esc(a.location)}</td>
+          <td>${esc(a.capacity)}</td>
+          <td>${POLICY_TEXT[a.policy_type] || esc(a.policy_type)}</td>
+          <td>
+            <button class="btn small ghost" onclick="openEdit('${esc(a.activity_id)}')">编辑</button>
+            <button class="btn small ghost" onclick="showStats('${esc(a.activity_id)}')">统计</button>
+            <button class="btn small danger" onclick="deleteActivity('${esc(a.activity_id)}')">删除</button>
+          </td>
+        </tr>`).join('')}
+      </tbody>
+    </table>`;
+}
+
+function renderPendingSelect() {
+  const select = document.getElementById('pending-activity-select');
+  const current = select.value;
+  select.innerHTML = state.adminActivities.map(a =>
+    `<option value="${esc(a.activity_id)}">${esc(a.title)}</option>`).join('');
+  if (current && state.adminActivities.some(a => a.activity_id === current)) {
+    select.value = current;
+  }
+}
+
+function findActivity(activityId) {
+  return state.adminActivities.find(a => a.activity_id === activityId)
+      || state.activities.find(a => a.activity_id === activityId);
+}
+
+function openEdit(activityId) {
+  const a = findActivity(activityId);
+  if (!a) return;
+  const form = document.getElementById('edit-form');
+  form.activity_id.value = a.activity_id;
+  form.title.value = a.title;
+  form.category.value = a.category || '';
+  form.start_at.value = toLocalInput(a.start_at);
+  form.location.value = a.location;
+  form.capacity.value = a.capacity;
+  form.policy_type.value = a.policy_type;
+  document.getElementById('edit-dialog').showModal();
+}
+
+async function submitEdit(event) {
+  event.preventDefault();
+  const form = event.target;
+  const activityId = form.activity_id.value;
+  const data = {
+    title: form.title.value.trim(),
+    category: form.category.value.trim(),
+    start_at: form.start_at.value,
+    location: form.location.value.trim(),
+    capacity: Number(form.capacity.value),
+    policy_type: form.policy_type.value
+  };
+  try {
+    await api('/api/admin/activities/' + activityId, { method: 'PUT', body: JSON.stringify(data) });
+    toast('活动已更新', 'ok');
+    document.getElementById('edit-dialog').close();
+    await loadAdminActivities();
+    await loadActivities();
+  } catch (err) {
+    toast(err.message, 'error');
+  }
+}
+
+async function deleteActivity(activityId) {
+  if (!confirm('确认删除该活动吗？若已有报名记录，系统会拒绝删除。')) return;
+  try {
+    await api('/api/admin/activities/' + activityId, { method: 'DELETE' });
+    toast('活动已删除', 'ok');
+    await loadAdminActivities();
+    await loadActivities();
+  } catch (err) {
+    toast(err.message, 'error');
+  }
+}
+
+async function showStats(activityId) {
+  try {
+    const stats = await api('/api/admin/activities/' + activityId + '/stats');
+    const a = findActivity(activityId);
+    document.getElementById('stats-title').textContent =
+      '活动统计：' + (a ? a.title : activityId);
+    document.getElementById('stats-body').innerHTML = `
+      <div class="stat-row"><span>已通过人数</span><b>${stats.approved_count}</b></div>
+      <div class="stat-row"><span>待审核人数</span><b>${stats.pending_count}</b></div>
+      <div class="stat-row"><span>剩余名额</span><b>${stats.remaining_seats}</b></div>`;
+    document.getElementById('stats-dialog').showModal();
+  } catch (err) {
+    toast(err.message, 'error');
+  }
+}
+
+async function loadPending() {
+  const activityId = document.getElementById('pending-activity-select').value;
+  const box = document.getElementById('pending-list');
+  if (!activityId) {
+    box.innerHTML = '<div class="empty">请先创建并选择一个活动。</div>';
+    return;
+  }
+  try {
+    const list = await api('/api/admin/activities/' + activityId + '/pending-registrations');
+    if (!list.length) {
+      box.innerHTML = '<div class="empty">该活动暂无待审核报名。</div>';
+      return;
+    }
+    box.innerHTML = `
+      <table>
+        <thead><tr><th>学生</th><th>报名时间</th><th>操作</th></tr></thead>
+        <tbody>
+        ${list.map(r => `
+          <tr>
+            <td>${esc(r.student_id)}</td>
+            <td>${esc(fmt(r.created_at))}</td>
+            <td>
+              <button class="btn small" onclick="review('${esc(r.registration_id)}','approve')">批准</button>
+              <button class="btn small danger" onclick="review('${esc(r.registration_id)}','reject')">拒绝</button>
+            </td>
+          </tr>`).join('')}
+        </tbody>
+      </table>`;
+  } catch (err) {
+    box.innerHTML = '<div class="empty">加载失败：' + esc(err.message) + '</div>';
+  }
+}
+
+async function review(registrationId, action) {
+  try {
+    await api('/api/admin/registrations/' + registrationId + '/' + action, { method: 'POST' });
+    toast(action === 'approve' ? '已批准' : '已拒绝', 'ok');
+    await loadPending();
+    await loadAdminActivities();
+  } catch (err) {
+    toast(err.message, 'error');
+  }
+}
+
+/* ---------------- 初始化 ---------------- */
+(function init() {
+  document.getElementById('student-select').value = state.studentId;
+  loadActivities();
+  loadMyRegistrations();
+  loadMessages();
+})();
+</script>
+</body>
+</html>
