@@ -30,12 +30,17 @@ os.environ.setdefault(
 )
 
 from asgi_wsgi_adapter import ASGItoWSGIAdapter  # noqa: E402
-from project.api.deps import get_event_bus, get_notification_service  # noqa: E402
+from project.api.deps import (  # noqa: E402
+    get_email_service,
+    get_event_bus,
+    get_notification_service,
+)
 from project.db import init_db  # noqa: E402
 from project.main import app as asgi_app  # noqa: E402
 
 # WSGI 模式不会触发 FastAPI 的 lifespan，这里显式完成应用启动动作。
 init_db()
 get_event_bus().subscribe(get_notification_service())
+get_event_bus().subscribe(get_email_service())
 
 application = ASGItoWSGIAdapter(asgi_app)

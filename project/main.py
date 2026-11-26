@@ -9,7 +9,11 @@ from typing import AsyncIterator
 from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse, JSONResponse
 
-from project.api.deps import get_event_bus, get_notification_service
+from project.api.deps import (
+    get_email_service,
+    get_event_bus,
+    get_notification_service,
+)
 from project.api.routes import activities, admin, health, messages, registrations
 from project.db import init_db
 from project.domain.errors import BusinessError
@@ -20,8 +24,9 @@ _STATIC_DIR = Path(__file__).resolve().parent / "static"
 @asynccontextmanager
 async def lifespan(_: FastAPI) -> AsyncIterator[None]:
     init_db()
-    # 观察者注册：通知服务订阅报名状态变更事件（只订阅一次）。
+    # 观察者注册：站内通知与模拟邮件订阅报名状态变更事件（只订阅一次）。
     get_event_bus().subscribe(get_notification_service())
+    get_event_bus().subscribe(get_email_service())
     yield
 
 

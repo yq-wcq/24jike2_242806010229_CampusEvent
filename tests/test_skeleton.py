@@ -8,7 +8,8 @@ import pytest
 
 from project.domain.enums import PolicyType, RegistrationStatus
 from project.domain.errors import InvalidTransitionError
-from project.domain.models import Activity, Registration
+from project.domain.models import Activity, Registration, Student
+from project.policies.base import RegistrationContext
 from project.policies.factory import RegistrationPolicyFactory
 
 
@@ -17,15 +18,30 @@ def make_registration(status: RegistrationStatus) -> Registration:
     return Registration("R1", "A1", "S001", status, now, now)
 
 
+def make_context(grade: int = 2) -> RegistrationContext:
+    return RegistrationContext(
+        student=Student("S001", "张三", grade, "s001@campus.example"),
+        activity=Activity(
+            activity_id="A1",
+            title="测试活动",
+            category="讲座",
+            start_at=datetime.now() + timedelta(hours=1),
+            location="教学楼",
+            capacity=2,
+            policy_type=PolicyType.DIRECT,
+        ),
+    )
+
+
 def test_direct_policy_returns_approved() -> None:
     policy = RegistrationPolicyFactory().create(PolicyType.DIRECT)
-    assert policy.initial_status() is RegistrationStatus.APPROVED
+    assert policy.decide(make_context()).status is RegistrationStatus.APPROVED
     assert policy.requires_approval() is False
 
 
 def test_audit_policy_returns_pending() -> None:
     policy = RegistrationPolicyFactory().create(PolicyType.APPROVAL)
-    assert policy.initial_status() is RegistrationStatus.PENDING
+    assert policy.decide(make_context()).status is RegistrationStatus.PENDING
     assert policy.requires_approval() is True
 
 

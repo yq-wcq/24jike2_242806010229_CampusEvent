@@ -5,7 +5,12 @@ from __future__ import annotations
 from typing import Protocol
 
 from project.domain.enums import RegistrationStatus
-from project.domain.models import Activity, Message, Registration
+from project.domain.models import Activity, EmailLog, Message, Registration, Student
+
+
+class StudentRepository(Protocol):
+    def find_by_id(self, student_id: str) -> Student | None:
+        ...
 
 
 class ActivityRepository(Protocol):
@@ -63,4 +68,15 @@ class MessageRepository(Protocol):
         ...
 
     def list_by_student(self, student_id: str) -> list[Message]:
+        ...
+
+
+class EmailLogRepository(Protocol):
+    def exists_by_event(self, event_id: str) -> bool:
+        ...
+
+    def save(self, log: EmailLog) -> EmailLog:
+        ...
+
+    def list_recent(self, limit: int = 50) -> list[EmailLog]:
         ...

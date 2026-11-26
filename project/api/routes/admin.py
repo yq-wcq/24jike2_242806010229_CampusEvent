@@ -2,17 +2,23 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, Response, status
+from fastapi import APIRouter, Depends, Query, Response, status
 
-from project.api.deps import get_activity_service, get_registration_service
+from project.api.deps import (
+    get_activity_service,
+    get_email_service,
+    get_registration_service,
+)
 from project.api.schemas import (
     ActivityCreate,
     ActivityOut,
     ActivityStatsOut,
     ActivityUpdate,
+    EmailLogOut,
     RegistrationOut,
 )
 from project.services.activity_service import ActivityService
+from project.services.email_service import EmailNotificationService
 from project.services.registration_service import RegistrationService
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
@@ -84,3 +90,12 @@ def reject_registration(
     service: RegistrationService = Depends(get_registration_service),
 ) -> RegistrationOut:
     return service.reject(registration_id)
+
+
+@router.get("/email-logs", response_model=list[EmailLogOut])
+def list_email_logs(
+    limit: int = Query(default=50, ge=1, le=200),
+    service: EmailNotificationService = Depends(get_email_service),
+) -> list[EmailLogOut]:
+    """模拟邮件发送记录；只读，用于验收与课堂演示（CR-02）。"""
+    return service.list_recent(limit)

@@ -6,7 +6,7 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from project.domain.enums import PolicyType, RegistrationStatus
+from project.domain.enums import EmailStatus, PolicyType, RegistrationStatus
 
 
 class ActivityCreate(BaseModel):
@@ -75,6 +75,21 @@ class ActivityStatsOut(BaseModel):
     approved_count: int
     pending_count: int
     remaining_seats: int
+
+
+class EmailLogOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    email_id: str
+    event_id: str
+    registration_id: str
+    student_id: str
+    recipient: str
+    subject: str
+    content: str
+    status: EmailStatus
+    error: str | None = None
+    created_at: datetime
 
 
 class ErrorOut(BaseModel):

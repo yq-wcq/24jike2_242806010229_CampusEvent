@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import datetime
 
-from project.domain.enums import PolicyType, RegistrationStatus
+from project.domain.enums import EmailStatus, PolicyType, RegistrationStatus
 from project.domain.errors import InvalidTransitionError
 
 
@@ -13,6 +13,8 @@ from project.domain.errors import InvalidTransitionError
 class Student:
     student_id: str
     name: str
+    grade: int = 2
+    email: str = ""
 
 
 @dataclass
@@ -72,6 +74,20 @@ class Message:
     content: str
     created_at: datetime
     is_read: bool = False
+
+
+@dataclass
+class EmailLog:
+    email_id: str
+    event_id: str
+    registration_id: str
+    student_id: str
+    recipient: str
+    subject: str
+    content: str
+    status: EmailStatus
+    created_at: datetime
+    error: str | None = None
 
 
 @dataclass(frozen=True)

@@ -10,6 +10,14 @@ class PolicyType(str, Enum):
 
     DIRECT = "DIRECT"
     APPROVAL = "APPROVAL"
+    GRADE_DIRECT = "GRADE_DIRECT"
+
+
+class EmailStatus(str, Enum):
+    """模拟邮件发送结果。"""
+
+    SENT = "SENT"
+    FAILED = "FAILED"
 
 
 class RegistrationStatus(str, Enum):

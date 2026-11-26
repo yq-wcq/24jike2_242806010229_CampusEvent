@@ -3,7 +3,7 @@
 Python + FastAPI + SQLite 的校园活动报名后端。
 
 实验二 baseline-v1 全部验收通过（C1~C10 + T-S1/T-S2，共 12 条）。
-当前另有 4 条补充边界测试，共 23 条 pytest 全部通过。
+完成教师变更 CR-01（年级限定报名）与 CR-02（模拟邮件通知）后，全量 37 条 pytest 通过。
 
 ## 线上访问地址
 
@@ -34,7 +34,7 @@ pip install -r requirements.txt
 python -m project.db
 ```
 
-默认生成 `campus_event.db`，含 4 张表 + 3 个种子学生（S001 / S002 / S003）。
+默认生成 `campus_event.db`，含 5 张表 + 4 个种子学生（S001 大二 / S002 大三 / S003 大一 / S004 大四）。已有旧库执行 `python scripts/migrate_v2.py` 完成增量迁移，脚本会先自动备份。
 
 ### 3. 启动开发服务器
 
@@ -117,10 +117,11 @@ from wsgi import application
 | `GET` | `/api/admin/activities/{id}/stats` | Admin 查看活动统计 |
 | `POST` | `/api/admin/registrations/{id}/approve` | Admin 批准报名 |
 | `POST` | `/api/admin/registrations/{id}/reject` | Admin 拒绝报名 |
+| `GET` | `/api/admin/email-logs` | Admin 查看模拟邮件记录（CR-02） |
 
 固定演示账号（不入库，内存模拟）：
 
-- 学生：`S001`、`S002`、`S003`（密码无，直接传 student_id）
+- 学生：`S001`（大二）、`S002`（大三）、`S003`（大一）、`S004`（大四）（密码无，直接传 student_id）
 - 管理员：Admin（内存角色，不登录）
 
 ---
@@ -130,18 +131,18 @@ from wsgi import application
 ```
 project/
   api/           # FastAPI 路由 + schemas + 依赖注入
-  domain/        # 领域模型（Activity / Registration / Message）+ 状态机 + 错误
-  policies/      # 策略模式：DirectPolicy / AuditPolicy / Factory
+  domain/        # 领域模型（Activity / Registration / Message / EmailLog）+ 状态机 + 错误
+  policies/      # 策略模式：DirectPolicy / AuditPolicy / GradeLimitedDirectPolicy / Factory
   events/        # 进程内事件总线（观察者模式）
-  repositories/  # 仓储接口 + SQLite 实现
-  services/      # 业务服务（ActivityService / RegistrationService / NotificationService）
+  repositories/  # 仓储接口 + SQLite 实现（含 Student / EmailLog）
+  services/      # 业务服务（Activity / Registration / Notification / EmailNotification）
   config.py      # 配置（DB 路径等）
   db.py          # DDL + 种子数据
   main.py        # FastAPI app 入口
 wsgi.py          # PythonAnywhere WSGI 入口（ASGI→WSGI 适配）
 asgi_wsgi_adapter.py  # 手写桥接器（无外部依赖）
-tests/           # pytest：C1~C10 + T-S1/T-S2 + 骨架
-docs/            # SRS 分析 + 设计说明 + UML 图 + PNG
+tests/           # pytest：验收、边界、骨架与 CR-01/CR-02 变更用例
+docs/            # SRS 分析 + 设计说明 V1/V2 + 变更影响分析 + UML 图
 ```
 
 ---
@@ -150,9 +151,10 @@ docs/            # SRS 分析 + 设计说明 + UML 图 + PNG
 
 | 决策 | 说明 |
 |---|---|
-| 策略模式（RegistrationPolicy） | DirectPolicy 自动 APPROVED；AuditPolicy 初始 PENDING。策略工厂按活动类型选择。 |
-| 名额检查放服务层 | 两种策略共用的业务规则（B.2.3），策略本身不含名额判断。 |
-| 观察者（事件总线） | 报名状态变更发 `RegistrationStatusChangedEvent`，NotificationService 订阅并落库。 |
+| 策略模式（RegistrationPolicy） | 三种策略：Direct 自动 APPROVED、Audit 初始 PENDING、GradeLimited 仅大二/大三；`decide(context)` 返回状态或拒绝原因。 |
+| 名额检查放服务层 | 三种策略共用的业务规则（B.2.3），策略本身不含名额判断。 |
+| 观察者（事件总线） | 状态变更发 `RegistrationStatusChangedEvent`；NotificationService 写站内消息，EmailNotificationService 写模拟邮件（仅 APPROVED/REJECTED）。 |
+| 邮件去重 | `email_logs.event_id` 唯一约束；重复事件不生成第二封邮件。 |
 | 先提交后发布 | 数据库 commit 后再 publish 事件；通知异常只记日志，不回滚业务（B.2.6）。 |
 | 服务层查重 | SQLite 不做唯一索引兜底，`find_active` 查 PENDING/APPROVED 联合过滤。 |
 | 删除拒绝 | 有任意历史报名（全状态）即拒绝删除；无报名可物理删除。 |
@@ -164,7 +166,9 @@ docs/            # SRS 分析 + 设计说明 + UML 图 + PNG
 
 | 标签 | 说明 |
 |---|---|
-| **`baseline-v1`** | 完整业务实现 + 23/23 测试通过，作为初始验收与后续变更基线 |
+| **`baseline-v1`** | 完整业务实现 + 23/23 测试通过，作为初始验收与变更基线 |
+
+变更分支 `change/v2-cr01-cr02` 已实现 CR-01/CR-02，全量 37/37 通过；线上验证后再打 `change-v2` 标签。
 
 ---
 
@@ -174,21 +178,24 @@ docs/            # SRS 分析 + 设计说明 + UML 图 + PNG
 |---|---|
 | 初始 SRS 分析 | `docs/SRS分析.md` |
 | 设计说明（含 UML 类图 + 2 张时序图） | `docs/设计说明V1.md` + `docs/images/` |
+| 变更影响分析 | `docs/变更影响分析.md` |
+| 增量设计（CR-01/CR-02） | `docs/设计说明V2.md` |
+| 数据库迁移脚本 | `scripts/migrate_v2.py` |
 | 源代码 | `project/` + `wsgi.py` + `asgi_wsgi_adapter.py` |
 | 生产依赖 | `requirements.prod.txt` |
 | AI 协作日志 | `AI_DEV_LOG.md` |
 | 验收测试用例 | `tests/test_acceptance.py`（C1~C10 + T-S1/T-S2） |
+| 变更测试用例 | `tests/test_change_cr01.py`、`tests/test_change_cr02.py` |
 | 运行说明 | 本 README + `DEPLOY_PYTHONANYWHERE.md` |
 | 实验报告 | `docs/实验报告.md` |
-| Git 标签 | `baseline-v1` |
+| Git 标签 | `baseline-v1`；变更分支 `change/v2-cr01-cr02` |
 
 ---
 
-## 后续（等教师发布变更单后）
+## 变更实施（CR-01 / CR-02）
 
-3.6 规范：不得提前实现变更需求。拿到变更单后：
-
-1. 写变更影响分析（涉及的类、接口、风险、测试范围）
-2. 从 `baseline-v1` 创建新分支
-3. 实现变更 → 回归测试 → 打 `change-v2` 标签
-4. 对比 baseline-v1 vs change-v2，统计新增类 / 修改类 / 回归失败数 / AI 交互轮次
+- 影响分析：`docs/变更影响分析.md`
+- 增量设计：`docs/设计说明V2.md`
+- 数据库迁移：`python scripts/migrate_v2.py`（自动备份旧库）
+- 变更测试：`tests/test_change_cr01.py`、`tests/test_change_cr02.py`
+- 当前状态：37/37 通过；待线上迁移与验证后打 `change-v2` 标签，并统计新增类、修改类、回归失败数与 AI 交互轮次

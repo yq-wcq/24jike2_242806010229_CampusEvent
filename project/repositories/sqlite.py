@@ -15,12 +15,14 @@ from pathlib import Path
 from uuid import uuid4
 
 from project.db import connect
-from project.domain.enums import PolicyType, RegistrationStatus
-from project.domain.models import Activity, Message, Registration
+from project.domain.enums import EmailStatus, PolicyType, RegistrationStatus
+from project.domain.models import Activity, EmailLog, Message, Registration, Student
 from project.repositories.interfaces import (
     ActivityRepository,
+    EmailLogRepository,
     MessageRepository,
     RegistrationRepository,
+    StudentRepository,
 )
 
 
@@ -48,6 +50,30 @@ def _row_to_registration(row: sqlite3.Row) -> Registration:
         status=RegistrationStatus(row["status"]),
         created_at=datetime.fromisoformat(row["created_at"]),
         updated_at=datetime.fromisoformat(row["updated_at"]),
+    )
+
+
+def _row_to_student(row: sqlite3.Row) -> Student:
+    return Student(
+        student_id=row["student_id"],
+        name=row["name"],
+        grade=int(row["grade"]),
+        email=row["email"] or "",
+    )
+
+
+def _row_to_email_log(row: sqlite3.Row) -> EmailLog:
+    return EmailLog(
+        email_id=row["email_id"],
+        event_id=row["event_id"],
+        registration_id=row["registration_id"],
+        student_id=row["student_id"],
+        recipient=row["recipient"],
+        subject=row["subject"],
+        content=row["content"],
+        status=EmailStatus(row["status"]),
+        created_at=datetime.fromisoformat(row["created_at"]),
+        error=row["error"],
     )
 
 
@@ -291,3 +317,68 @@ class SqliteMessageRepository(MessageRepository):
                 (student_id,),
             ).fetchall()
         return [_row_to_message(r) for r in rows]
+
+
+# ---------------------------------------------------------------------------
+# Student 仓储
+# ---------------------------------------------------------------------------
+
+class SqliteStudentRepository(StudentRepository):
+    def __init__(self, database_path: Path) -> None:
+        self._database_path = Path(database_path)
+
+    def find_by_id(self, student_id: str) -> Student | None:
+        with connect(self._database_path) as conn:
+            row = conn.execute(
+                "SELECT * FROM students WHERE student_id = ?", (student_id,)
+            ).fetchone()
+        return _row_to_student(row) if row else None
+
+
+# ---------------------------------------------------------------------------
+# EmailLog 仓储
+# ---------------------------------------------------------------------------
+
+class SqliteEmailLogRepository(EmailLogRepository):
+    def __init__(self, database_path: Path) -> None:
+        self._database_path = Path(database_path)
+
+    def exists_by_event(self, event_id: str) -> bool:
+        with connect(self._database_path) as conn:
+            row = conn.execute(
+                "SELECT 1 FROM email_logs WHERE event_id = ? LIMIT 1", (event_id,)
+            ).fetchone()
+        return row is not None
+
+    def save(self, log: EmailLog) -> EmailLog:
+        log.email_id = log.email_id or uuid4().hex
+        with connect(self._database_path) as conn:
+            conn.execute(
+                """
+                INSERT INTO email_logs
+                    (email_id, event_id, registration_id, student_id, recipient,
+                     subject, content, status, error, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    log.email_id,
+                    log.event_id,
+                    log.registration_id,
+                    log.student_id,
+                    log.recipient,
+                    log.subject,
+                    log.content,
+                    log.status.value,
+                    log.error,
+                    log.created_at.isoformat(),
+                ),
+            )
+        return log
+
+    def list_recent(self, limit: int = 50) -> list[EmailLog]:
+        with connect(self._database_path) as conn:
+            rows = conn.execute(
+                "SELECT * FROM email_logs ORDER BY created_at DESC LIMIT ?",
+                (int(limit),),
+            ).fetchall()
+        return [_row_to_email_log(r) for r in rows]

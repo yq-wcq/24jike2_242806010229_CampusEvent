@@ -13,19 +13,23 @@ from project.domain.enums import RegistrationStatus
 from project.domain.errors import (
     ActivityNotFoundError,
     ActivityStartedError,
+    BusinessError,
     CapacityExceededError,
     DuplicateRegistrationError,
     ForbiddenError,
     InvalidTransitionError,
     RegistrationNotFoundError,
+    StudentNotFoundError,
 )
 from project.domain.events import RegistrationStatusChangedEvent
 from project.domain.models import Registration
 from project.events.publisher import EventPublisher
+from project.policies.base import RegistrationContext
 from project.policies.factory import RegistrationPolicyFactory
 from project.repositories.interfaces import (
     ActivityRepository,
     RegistrationRepository,
+    StudentRepository,
 )
 
 
@@ -35,11 +39,13 @@ class RegistrationService:
         policy_factory: RegistrationPolicyFactory,
         activity_repository: ActivityRepository,
         registration_repository: RegistrationRepository,
+        student_repository: StudentRepository,
         event_publisher: EventPublisher,
     ) -> None:
         self._policy_factory = policy_factory
         self._activity_repository = activity_repository
         self._registration_repository = registration_repository
+        self._student_repository = student_repository
         self._event_publisher = event_publisher
 
     # ------------------------------------------------------------------
@@ -60,17 +66,32 @@ class RegistrationService:
                 f"你在该活动已有有效报名（状态：{existing.status.value}）"
             )
 
-        # 4. 策略决定初始状态；策略不关心名额
-        policy = self._policy_factory.create(activity.policy_type)
-        initial_status = policy.initial_status()
+        # 4. 学生必须存在（CR-01：策略需要读取年级）
+        student = self._student_repository.find_by_id(student_id)
+        if student is None:
+            raise StudentNotFoundError(f"学生不存在：{student_id}")
 
-        # 5. 直接报名时再次校验名额（B.2.3：只有 APPROVED 占名额）
+        # 5. 策略给出决策：初始状态，或拒绝原因（CR-01 年级资格）
+        policy = self._policy_factory.create(activity.policy_type)
+        decision = policy.decide(
+            RegistrationContext(student=student, activity=activity)
+        )
+        if decision.rejection_code:
+            raise BusinessError(
+                decision.rejection_message or "不满足报名条件",
+                code=decision.rejection_code,
+            )
+        initial_status = decision.status
+        if initial_status is None:
+            raise BusinessError("报名策略未给出状态")
+
+        # 6. 直接报名时再次校验名额（B.2.3：只有 APPROVED 占名额）
         if initial_status == RegistrationStatus.APPROVED:
             approved = self._registration_repository.count_approved(activity_id)
             if approved >= activity.capacity:
                 raise CapacityExceededError("活动已报满")
 
-        # 6. 写库（仓储层独立事务）
+        # 7. 写库（仓储层独立事务）
         now = datetime.now()
         registration = Registration(
             registration_id=uuid4().hex,
@@ -82,7 +103,7 @@ class RegistrationService:
         )
         registration = self._registration_repository.save(registration)
 
-        # 7. 业务事务已提交，之后发布事件；通知异常不回滚（B.2.6）
+        # 8. 业务事务已提交，之后发布事件；通知异常不回滚（B.2.6）
         self._publish(registration, from_status=None)
         return registration
 

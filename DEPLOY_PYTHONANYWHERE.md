@@ -86,7 +86,13 @@ cd /home/ZYQ/24-2-_242806010229_StudyTask
 python -c "from project.db import init_db; init_db()"
 ```
 
-执行后当前目录会生成 `campus_event.db`（含 4 张表 + 3 个种子学生）。
+执行后当前目录会生成 `campus_event.db`（含 5 张表 + 4 个种子学生）。已有线上库升级到 V2 时执行：
+
+```bash
+python scripts/migrate_v2.py
+```
+
+脚本会先备份数据库，再补齐 `students` 的 grade/email 列、重建 `activities` 的 CHECK 以支持 `GRADE_DIRECT`、创建 `email_logs`。
 
 ---
 

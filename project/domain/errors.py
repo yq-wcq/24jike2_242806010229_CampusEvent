@@ -44,3 +44,11 @@ class DeleteRejectedError(BusinessError):
 
 class ForbiddenError(BusinessError):
     code = "FORBIDDEN"
+
+
+class StudentNotFoundError(BusinessError):
+    code = "STUDENT_NOT_FOUND"
+
+
+class GradeNotEligibleError(BusinessError):
+    code = "GRADE_NOT_ELIGIBLE"

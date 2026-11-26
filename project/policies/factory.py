@@ -6,6 +6,7 @@ from project.domain.enums import PolicyType
 from project.policies.audit import AuditPolicy
 from project.policies.base import RegistrationPolicy
 from project.policies.direct import DirectPolicy
+from project.policies.grade_limited import GradeLimitedDirectPolicy
 
 
 class RegistrationPolicyFactory:
@@ -13,6 +14,7 @@ class RegistrationPolicyFactory:
         self._policies: dict[PolicyType, RegistrationPolicy] = {
             PolicyType.DIRECT: DirectPolicy(),
             PolicyType.APPROVAL: AuditPolicy(),
+            PolicyType.GRADE_DIRECT: GradeLimitedDirectPolicy(),
         }
 
     def create(self, policy_type: PolicyType) -> RegistrationPolicy:
